@@ -1,10 +1,11 @@
 # Hardware Validator
 
 Hardware Validator is a Python 3.11+ application for printing a local Linux
-hardware inventory. It reads standard Linux files and APIs without benchmarks,
-stress, destructive operations, root requirements, or external applications.
-The inventory includes local network-interface configuration but performs no
-network connections, scans, probes, or remote lookups.
+hardware inventory and, only when explicitly requested, running a moderate CPU
+load exercise. Inventory reads standard Linux files and APIs without benchmarks,
+load, destructive operations, root requirements, or external applications. The
+inventory includes local network-interface configuration but performs no network
+connections, scans, probes, or remote lookups.
 
 ## Install
 
@@ -51,6 +52,77 @@ locally available, MTU, and duplex. Neither mode performs network traffic.
 
 Basic command information is available with `--help`; the installed version is
 available with `--version`.
+
+## CPU load test
+
+The CPU test starts only through an explicit command. Running the inventory alone
+never creates load workers:
+
+```text
+.venv/bin/hardware-validator test cpu
+.venv/bin/python -m hardware_validator test cpu
+```
+
+Defaults:
+
+- Duration: 10 minutes.
+- Requested worker duty cycle: 60%.
+- Configurable program thermal safeguard: 85 C.
+- One worker per logical processor.
+
+Options:
+
+```text
+hardware-validator test cpu --duration 10m
+hardware-validator test cpu --load 60
+hardware-validator test cpu --max-temperature 85
+hardware-validator test cpu --allow-no-temperature
+hardware-validator test cpu --verbose
+```
+
+Duration accepts integer seconds, minutes, or hours with `s`, `m`, or `h`, from
+10 seconds through 24 hours. Load accepts 10 through 90; 100% is not supported.
+The requested load is an approximate worker duty cycle, not a guarantee of total
+system utilization. Other applications can increase measured utilization.
+
+The default 85 C value is a configurable Hardware Validator safeguard, not an
+official limit for every processor. When a monitored sensor provides a reliable
+lower critical limit, the lower value is used. The program does not claim that an
+unattributed sensor measures the CPU directly.
+
+By default, no load starts without a usable temperature measurement.
+`--allow-no-temperature` overrides that protection and prints a clear warning to
+stderr. It should be used only when the operator accepts that Hardware Validator
+cannot provide thermal protection for that run.
+
+Every load test generates heat. Stop with `Ctrl+C` if you observe unusual odor,
+noise, defective fans, shutdowns, or other abnormal behavior. Ctrl+C requests
+cooperative worker shutdown and returns exit code 130. The final result reports
+only what happened during the configured exercise; it does not certify CPU
+health, reliability, cooling adequacy, or remaining life.
+
+Exit codes:
+
+- `0`: configured duration completed.
+- `1`: thermal limit, lost sensors, worker failure, SIGTERM, or operational error.
+- `2`: invalid arguments.
+- `130`: interrupted with Ctrl+C.
+
+Normal progress is compact. `--verbose` adds approximately one-second CPU,
+frequency, sensor, and worker details. Configuration, progress, and the final
+summary use stdout. Warnings and errors are emitted to stderr when they occur;
+the final stdout summary also retains its warning list. Standard redirection works:
+
+```text
+hardware-validator test cpu > cpu-test.txt
+hardware-validator test cpu --verbose > cpu-test-details.txt
+hardware-validator test cpu 2> cpu-test-errors.log
+```
+
+The test creates no report or log automatically, requires no root access, and
+does not invoke `stress`, `stress-ng`, `sysbench`, `sensors`, or any remote
+service. It performs no network connection or storage workload and does not
+change CPU affinity, priority, governor, or frequency.
 
 ## Memory values
 

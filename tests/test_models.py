@@ -79,7 +79,7 @@ class ModelTests(unittest.TestCase):
                 GpuInfo(vendor_id=vendor_id)
 
     def test_package_version(self) -> None:
-        self.assertEqual(__version__, "0.1.0")
+        self.assertEqual(__version__, "0.2.0")
 
     def test_network_models_accept_typed_immutable_values(self) -> None:
         interface = NetworkInterfaceInfo(

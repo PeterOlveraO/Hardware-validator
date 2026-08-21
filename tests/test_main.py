@@ -17,6 +17,7 @@ from hardware_validator.models import MemoryInfo
 from hardware_validator.models import NetworkInfo
 from hardware_validator.models import StorageInfo
 from hardware_validator.models import SystemInfo
+from hardware_validator.cpu_test.models import CpuTestConfig
 
 
 def empty_results() -> InventoryResults:
@@ -80,7 +81,93 @@ class MainTests(unittest.TestCase):
             __main__.main(["--version"])
 
         self.assertEqual(error.exception.code, 0)
-        self.assertEqual(output.getvalue().strip(), "0.1.0")
+        self.assertEqual(output.getvalue().strip(), "0.2.0")
+
+    def test_cpu_test_arguments_are_normalized_without_running_real_load(self) -> None:
+        from hardware_validator.cpu_test import application
+
+        for arguments in (
+            [
+                "test",
+                "cpu",
+                "--duration",
+                "10s",
+                "--load",
+                "20",
+                "--max-temperature",
+                "75.5",
+                "--allow-no-temperature",
+                "--verbose",
+            ],
+            [
+                "--verbose",
+                "test",
+                "cpu",
+                "--duration",
+                "10s",
+                "--load",
+                "20",
+                "--max-temperature",
+                "75.5",
+                "--allow-no-temperature",
+            ],
+        ):
+            with self.subTest(arguments=arguments), patch.object(
+                application, "run_cpu_test_command", return_value=0
+            ) as run:
+                exit_code = __main__.main(arguments)
+
+            self.assertEqual(exit_code, 0)
+            config = run.call_args.args[0]
+            self.assertEqual(
+                config,
+                CpuTestConfig(
+                    duration_seconds=10,
+                    load_percent=20,
+                    maximum_temperature_celsius=75.5,
+                    allow_no_temperature=True,
+                    verbose=True,
+                ),
+            )
+
+    def test_cpu_test_invalid_arguments_return_argparse_code_two(self) -> None:
+        for arguments in (
+            ["test", "cpu", "--duration", "9s"],
+            ["test", "cpu", "--load", "100"],
+            ["test", "cpu", "--max-temperature", "101"],
+        ):
+            with (
+                self.subTest(arguments=arguments),
+                redirect_stderr(io.StringIO()),
+                self.assertRaises(SystemExit) as error,
+            ):
+                __main__.main(arguments)
+            self.assertEqual(error.exception.code, 2)
+
+    def test_cpu_test_help_does_not_start_the_engine(self) -> None:
+        output = io.StringIO()
+        with redirect_stdout(output), self.assertRaises(SystemExit) as error:
+            __main__.main(["test", "cpu", "--help"])
+        self.assertEqual(error.exception.code, 0)
+        self.assertIn("--duration", output.getvalue())
+        self.assertIn("--allow-no-temperature", output.getvalue())
+
+    def test_inventory_commands_never_dispatch_cpu_test(self) -> None:
+        from hardware_validator.cpu_test import application
+
+        for arguments in ([], ["--verbose"]):
+            with (
+                self.subTest(arguments=arguments),
+                patch.object(application, "run_cpu_test_command") as cpu_test,
+                patch(
+                    "hardware_validator.collector.collect_inventory",
+                    return_value=empty_results(),
+                ),
+                patch("hardware_validator.detectors.default_detectors"),
+                redirect_stdout(io.StringIO()),
+            ):
+                self.assertEqual(__main__.main(arguments), 0)
+            cpu_test.assert_not_called()
 
     def test_report_encoding_failure_is_written_to_stderr(self) -> None:
         class RestrictedOutput(io.StringIO):
@@ -105,6 +192,41 @@ class MainTests(unittest.TestCase):
                 self.assertIn(
                     "Unable to write the hardware inventory", error.getvalue()
                 )
+
+    def test_cpu_test_output_failure_returns_one(self) -> None:
+        from hardware_validator.cpu_test import application
+
+        error = io.StringIO()
+        with (
+            patch.object(
+                application,
+                "run_cpu_test_command",
+                side_effect=OSError("fixture\x1berror"),
+            ),
+            redirect_stderr(error),
+        ):
+            exit_code = __main__.main(["test", "cpu"])
+
+        self.assertEqual(exit_code, 1)
+        self.assertIn(r"fixture\x1berror", error.getvalue())
+        self.assertNotIn("\x1b", error.getvalue())
+
+    def test_cpu_test_stderr_failure_still_returns_one(self) -> None:
+        from hardware_validator.cpu_test import application
+
+        class RestrictedError(io.StringIO):
+            def write(self, value: str) -> int:
+                raise OSError("fixture")
+
+        with (
+            patch.object(
+                application,
+                "run_cpu_test_command",
+                side_effect=OSError("fixture"),
+            ),
+            redirect_stderr(RestrictedError()),
+        ):
+            self.assertEqual(__main__.main(["test", "cpu"]), 1)
 
     def test_main_rejects_missing_psutil(self) -> None:
         error = io.StringIO()
