@@ -16,6 +16,7 @@ from hardware_validator.collector import collect_inventory
 from hardware_validator.detectors import CpuDetector
 from hardware_validator.detectors import GpuDetector
 from hardware_validator.detectors import MemoryDetector
+from hardware_validator.detectors import NetworkDetector
 from hardware_validator.detectors import StorageDetector
 from hardware_validator.detectors import SystemDetector
 from hardware_validator.detectors import default_detectors
@@ -23,11 +24,12 @@ from hardware_validator.models import CpuInfo
 from hardware_validator.models import GpuInventory
 from hardware_validator.models import HardwareSnapshot
 from hardware_validator.models import MemoryInfo
+from hardware_validator.models import NetworkInfo
 from hardware_validator.models import StorageInfo
 from hardware_validator.models import SystemInfo
 from hardware_validator.report import render_inventory
 
-COMPONENT_NAMES = ("system", "cpu", "memory", "storage", "gpu")
+COMPONENT_NAMES = ("system", "cpu", "memory", "storage", "gpu", "network")
 
 
 class RecordingDetector:
@@ -64,6 +66,7 @@ def complete_component_results() -> dict[str, DetectionResult[object]]:
         ),
         "storage": DetectionResult.complete(StorageInfo()),
         "gpu": DetectionResult.complete(GpuInventory()),
+        "network": DetectionResult.complete(NetworkInfo()),
     }
 
 
@@ -96,6 +99,7 @@ class InventoryIntegrationTests(unittest.TestCase):
         self.assertIsInstance(detectors.memory, MemoryDetector)
         self.assertIsInstance(detectors.storage, StorageDetector)
         self.assertIsInstance(detectors.gpu, GpuDetector)
+        self.assertIsInstance(detectors.network, NetworkDetector)
 
     def test_successful_collection_reaches_report_as_valid_models(self) -> None:
         calls: list[str] = []
@@ -105,7 +109,7 @@ class InventoryIntegrationTests(unittest.TestCase):
 
         self.assertEqual(calls, list(COMPONENT_NAMES))
         self.assertIsInstance(results.snapshot, HardwareSnapshot)
-        for section in ("System", "CPU", "Memory", "Storage", "GPU"):
+        for section in ("System", "CPU", "Memory", "Storage", "GPU", "Network"):
             self.assertIn(section, report)
 
     def test_partial_permission_and_complete_results_are_combined(self) -> None:
@@ -142,6 +146,7 @@ class InventoryIntegrationTests(unittest.TestCase):
             "memory": MemoryInfo,
             "storage": StorageInfo,
             "gpu": GpuInventory,
+            "network": NetworkInfo,
         }
         for failed_name in COMPONENT_NAMES:
             with self.subTest(component=failed_name):
@@ -192,6 +197,7 @@ class InventoryIntegrationTests(unittest.TestCase):
                 memory=valid["memory"],  # type: ignore[arg-type]
                 storage=valid["storage"],  # type: ignore[arg-type]
                 gpu=valid["gpu"],  # type: ignore[arg-type]
+                network=valid["network"],  # type: ignore[arg-type]
             )
 
     def test_main_renders_nonfatal_component_failure_and_returns_zero(self) -> None:
@@ -214,7 +220,8 @@ class InventoryIntegrationTests(unittest.TestCase):
         self.assertEqual(exit_code, 0)
         self.assertEqual(error.getvalue(), "")
         self.assertIn("Memory\n  Total: Unknown", output.getvalue())
-        self.assertIn("GPU\n", output.getvalue())
+        self.assertIn("Graphics\n", output.getvalue())
+        self.assertIn("Network\n", output.getvalue())
 
     def test_main_reports_programming_failure_and_returns_nonzero(self) -> None:
         detectors = recording_detectors(

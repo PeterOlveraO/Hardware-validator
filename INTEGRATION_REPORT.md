@@ -4,15 +4,15 @@ Fecha: 20 de agosto de 2026.
 
 ## Resultado
 
-Los detectores de sistema, CPU, memoria, almacenamiento y GPU están conectados a
-una única ejecución de terminal mediante un orquestador validado. Un problema
+Los detectores de sistema, CPU, memoria, almacenamiento, GPU y red están
+conectados a una única ejecución de terminal mediante un orquestador validado. Un problema
 operativo en un componente produce un objeto vacío válido para ese componente y
 no impide ejecutar los detectores posteriores. Los errores de programación o de
 contrato son fatales, se comunican por stderr y producen código de salida
 distinto de cero.
 
-No se añadieron componentes, dependencias, telemetría, reintentos, red ni
-formatos de salida nuevos.
+No se añadieron dependencias de terceros, telemetría, reintentos ni formatos de
+archivo. La red añadida es inventario local y no realiza tráfico.
 
 ## Flujo integrado
 
@@ -21,14 +21,15 @@ La ejecución normal sigue estos pasos:
 1. `__main__.py` procesa `--help` y `--version`.
 2. Valida Python 3.11+, Linux y `psutil==7.2.1`.
 3. `default_detectors()` crea exactamente `SystemDetector`, `CpuDetector`,
-   `MemoryDetector`, `StorageDetector` y `GpuDetector`.
+   `MemoryDetector`, `StorageDetector`, `GpuDetector` y `NetworkDetector`.
 4. `InventoryDetectors` valida que cada componente exponga `detect()` como
    método invocable.
-5. `collect_inventory()` ejecuta los cinco detectores secuencialmente y conserva
+5. `collect_inventory()` ejecuta los seis detectores secuencialmente y conserva
    un `DetectionResult` por componente.
 6. `InventoryResults` valida cada wrapper y el tipo exacto de su modelo público.
-7. `render_inventory()` recibe el agregado validado y solo lo presenta; no
-   vuelve a detectar hardware.
+7. `render_summary()` recibe el agregado validado de forma predeterminada;
+   `render_inventory()` presenta el detalle con `--verbose`. Ninguno vuelve a
+   detectar hardware.
 8. La CLI escribe el reporte en stdout. Los errores fatales se escriben en
    stderr.
 
@@ -82,7 +83,7 @@ argumentos inválidos conservan el código `2` estándar de `argparse`.
 
 ## Garantía para presentación
 
-Antes de llamar al formateador se comprueba que existen cinco
+Antes de llamar al formateador se comprueba que existen seis
 `DetectionResult` válidos y que contienen respectivamente:
 
 - `SystemInfo`.
@@ -90,6 +91,7 @@ Antes de llamar al formateador se comprueba que existen cinco
 - `MemoryInfo`.
 - `StorageInfo`.
 - `GpuInventory`.
+- `NetworkInfo`.
 
 Por ello un fallo operativo no entrega `None`, diccionarios ni objetos de tipo
 incorrecto a la presentación. El reporte puede mostrar `Unknown` de forma
@@ -99,10 +101,11 @@ consistente sin conocer detalles de ejecución del detector.
 
 Se añadió `tests/test_integration.py` con ocho escenarios de integración:
 
-- Fábrica predeterminada con los cinco tipos concretos.
+- Fábrica predeterminada con los seis tipos concretos.
 - Ejecución exitosa de todos los componentes hasta el reporte.
 - Combinación de resultados completos, parciales y permiso denegado.
-- Fallo operativo independiente de sistema, CPU, memoria, almacenamiento y GPU.
+- Fallo operativo independiente de sistema, CPU, memoria, almacenamiento, GPU y
+  red.
 - Confirmación de que todos los detectores posteriores siguen ejecutándose.
 - Error de programación fatal y no ocultado.
 - Agregado inválido rechazado antes del formateador.
@@ -115,25 +118,28 @@ errores inesperados.
 Resultado final:
 
 ```text
-Ran 84 tests
+Ran 139 tests
 OK
 ```
 
 ## Verificación real
 
-El flujo completo se ejecutó sin root con escritura de bytecode desactivada y la
-salida capturada exclusivamente en memoria:
+El flujo completo se ejecutó sin root en los dos puntos de entrada y en ambos
+niveles de presentación. La salida se descartó durante la verificación final
+para no publicar direcciones locales:
 
 ```text
-exit=0 sections=True bytes=5744
+hardware-validator: exit=0
+python -m hardware_validator: exit=0
+hardware-validator --verbose: exit=0
+python -m hardware_validator --verbose: exit=0
 ```
 
-Una segunda ejecución directa del colector produjo:
+Una ejecución directa del colector, redactando IP y MAC, produjo:
 
 ```text
-system=complete cpu=complete memory=complete storage=complete gpu=complete
-VmHWM: 21656 kB
-VmRSS: 21656 kB
+system=complete cpu=complete memory=complete storage=complete gpu=complete network=complete
+network_interfaces=2
 ```
 
 No se desconectó la red física del host porque el entorno no proporciona un
@@ -154,10 +160,20 @@ APIs de psutil utilizadas:
 - `disk_partitions()` lee `/proc/filesystems` y la tabla local de montajes.
 - `disk_usage()` llama a `os.statvfs()` solo para montajes locales aceptados por
   el detector.
+- `net_if_addrs()` y `net_if_stats()` consultan exclusivamente el estado local
+  de interfaces proporcionado por Linux.
 
-El código de producción no contiene imports ni llamadas a `subprocess`, sockets,
-clientes HTTP, shell o utilidades externas. Tampoco contiene operaciones de
-escritura, borrado, renombrado o creación de archivos.
+Las máscaras proceden de esas direcciones locales. Los gateways se leen de
+`/proc/net/route` y `/proc/net/ipv6_route`; el DNS configurado y el ascendente se
+leen separadamente de `/etc/resolv.conf` y del archivo opcional de
+systemd-resolved. Las filas malformadas no se convierten en ausencias
+confirmadas, y las rutas rechazadas o IPv6 con selector de origen no se presentan
+como gateways globales.
+
+El código de producción no contiene llamadas a `subprocess`, creación de sockets,
+clientes HTTP, shell o utilidades externas. La importación de constantes de
+familia de direcciones no abre sockets. Tampoco contiene operaciones de escritura,
+borrado, renombrado o creación de archivos.
 
 El detector de almacenamiento evita consultar uso para NFS, CIFS, SMB, FUSE y
 autofs para no activar servicios o automontajes remotos.
@@ -174,8 +190,14 @@ validaciones del orquestador.
 ## Archivos modificados en esta integración
 
 - `src/hardware_validator/collector.py`.
+- `src/hardware_validator/models.py`.
+- `src/hardware_validator/detectors/network.py`.
+- `src/hardware_validator/detectors/__init__.py`.
+- `src/hardware_validator/report.py`.
 - `tests/test_collector.py`.
 - `tests/test_integration.py`.
+- `tests/test_network_detector.py`.
+- `tests/test_report.py`.
 - `docs/v0.1.0-specification.md`.
 - `IMPLEMENTATION_REPORT.md`.
 - `INTEGRATION_REPORT.md`.
@@ -203,4 +225,7 @@ validaciones del orquestador.
 .venv/bin/hardware-validator --help
 .venv/bin/hardware-validator --version
 .venv/bin/hardware-validator
+.venv/bin/hardware-validator --verbose
+.venv/bin/python -m hardware_validator
+.venv/bin/python -m hardware_validator --verbose
 ```

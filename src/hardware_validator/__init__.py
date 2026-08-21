@@ -11,6 +11,10 @@ from .models import HardwareSnapshot
 from .models import MemoryInfo
 from .models import MemoryModuleInfo
 from .models import MountInfo
+from .models import NetworkInfo
+from .models import NetworkAddressInfo
+from .models import NetworkGatewayInfo
+from .models import NetworkInterfaceInfo
 from .models import PartitionInfo
 from .models import StorageInfo
 from .models import SwapInfo
@@ -30,6 +34,10 @@ __all__ = [
     "MemoryInfo",
     "MemoryModuleInfo",
     "MountInfo",
+    "NetworkInfo",
+    "NetworkAddressInfo",
+    "NetworkGatewayInfo",
+    "NetworkInterfaceInfo",
     "PartitionInfo",
     "StorageInfo",
     "SwapInfo",

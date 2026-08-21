@@ -5,9 +5,9 @@ Fecha de verificación: 20 de agosto de 2026.
 ## Estado general
 
 Se implementó un inventario informativo, local, no interactivo y no destructivo
-para Linux. La ejecución normal detecta sistema, CPU, memoria, almacenamiento y
-GPU, conserva los valores desconocidos de forma explícita y genera un reporte de
-terminal estable.
+para Linux. La ejecución normal detecta sistema, CPU, memoria, almacenamiento,
+GPU y red local, conserva los valores desconocidos de forma explícita y genera
+un reporte de terminal estable.
 
 Los encargos posteriores del usuario amplían expresamente el alcance histórico
 de `docs/v0.1.0-specification.md`. Por ese motivo la implementación actual sí
@@ -31,6 +31,10 @@ excluyera.
   dispositivos desconocidos.
 - [x] Inventario de cero, una o varias GPUs combinando DRM y PCI sin duplicar
   conectores como GPUs.
+- [x] Inventario local de interfaces Ethernet, Wi-Fi, loopback, virtuales y
+  desconocidas sin tráfico de red.
+- [x] Máscaras y prefijos locales, gateways predeterminados IPv4/IPv6 y DNS
+  configurado o ascendente mediante archivos locales de Linux.
 - [x] Salida de terminal con secciones, unidades legibles, `Unknown`, `--help` y
   `--version`.
 - [x] Estados internos `complete`, `partial` y `unavailable` sin presentarlos
@@ -159,10 +163,35 @@ Fuentes:
 Los nodos DRM se fusionan con PCI mediante la identidad canónica del dispositivo.
 Los conectores se asocian por la misma identidad y nunca crean GPUs adicionales.
 
+### Red local
+
+Campos:
+
+- Nombre y tipo conservador de interfaz.
+- Estado activo o inactivo, MAC, IPv4 e IPv6 locales con máscara o prefijo.
+- Velocidad positiva, MTU y dúplex cuando están disponibles.
+- Gateways predeterminados IPv4/IPv6 con interfaz y métrica.
+- DNS configurado y DNS ascendente opcional, conservados por separado.
+
+Fuentes:
+
+- `psutil.net_if_addrs()` y `psutil.net_if_stats()`.
+- `/sys/class/net`, tipo ARPHRD, marcadores inalámbricos, identidad canónica y
+  enlace de dispositivo físico.
+- `/proc/net/route` y `/proc/net/ipv6_route` para rutas predeterminadas.
+- `/etc/resolv.conf` y, cuando existe,
+  `/run/systemd/resolve/resolv.conf` para DNS local.
+
+No se usan prefijos de nombres para clasificar y no se realizan conexiones,
+escaneos, DNS, captura, medición ni consultas remotas.
+
 ## Presentación
 
-La salida contiene secciones estables `System`, `CPU`, `Memory`, `Storage` y
-`GPU`. Los modelos mantienen unidades base y el formateador convierte:
+La salida predeterminada es un resumen con secciones `Computer`, `Processor`,
+`Memory`, `Storage`, `Graphics` y `Network`. `--verbose` conserva el reporte
+técnico con las secciones `System`, `CPU`, `Memory`, `Storage`, `GPU` y
+`Network`. Ambos consumen el mismo inventario ya detectado. Los modelos mantienen
+unidades base y los formateadores convierten:
 
 - Bytes a unidades IEC: KiB, MiB, GiB, TiB, PiB o EiB.
 - Hertz a kHz, MHz, GHz o THz.
@@ -200,7 +229,7 @@ GPU
 
 ## Pruebas
 
-Suite final: 84 pruebas unitarias y de integración aprobadas.
+Suite final: 139 pruebas unitarias y de integración aprobadas.
 
 Cobertura destacada:
 
@@ -216,9 +245,12 @@ Cobertura destacada:
   IDs sin nombre, conectores, fuentes ausentes y permisos.
 - Snapshots completos y vacíos, múltiples dispositivos, unidades, valores cero,
   cadenas largas, controles de terminal y enteros muy grandes.
+- Interfaces físicas, virtuales y desconocidas; máscaras válidas o malformadas;
+  rutas predeterminadas IPv4/IPv6, endianess, métricas, flags y filas truncadas;
+  DNS configurado, stub y ascendente.
 - Dependencia ausente o incompatible, `--help`, `--version`, errores de escritura
   y violaciones internas de contrato.
-- Integración de los cinco detectores, fallo operativo independiente de cada
+- Integración de los seis detectores, fallo operativo independiente de cada
   componente, combinaciones parciales y errores de programación fatales.
 
 Comandos ejecutados:
@@ -229,15 +261,17 @@ Comandos ejecutados:
 .venv/bin/python -m hardware_validator --help
 .venv/bin/python -m hardware_validator --version
 .venv/bin/python -m hardware_validator
+.venv/bin/python -m hardware_validator --verbose
 .venv/bin/python -m pip check
 ```
 
 ## Ejecución real sin root
 
-Los cinco detectores se ejecutaron en el host Linux real sin `sudo` y terminaron
+Los seis detectores se ejecutaron en el host Linux real sin `sudo` y terminaron
 con estado interno `complete` y sin incidencias. La salida real detectó sistema,
 CPU, RAM/swap, un NVMe con particiones y montajes, y una GPU Intel mediante IDs y
-driver.
+driver. La red detectó dos interfaces; las direcciones, máscaras, gateways, MAC y
+DNS se descartaron durante la verificación para no publicarlos.
 
 La memoria se verificó con `/proc/self/status`:
 
@@ -281,6 +315,10 @@ simulados dentro de directorios temporales; el código de producción no los cre
 - Los errores de invariantes de modelos ahora atraviesan el límite de recuperación
   como errores internos en vez de convertirse en datos no disponibles.
 - Se endureció el formateo para controles Unicode y valores enteros extremos.
+- Se endurecieron rutas y DNS para que datos malformados sin candidatos válidos
+  permanezcan desconocidos en vez de presentarse como ausencia confirmada.
+- La decodificación de gateways IPv4 respeta el endianess nativo y las rutas
+  rechazadas o con gateway nulo no se presentan.
 
 No quedan errores de pruebas conocidos.
 
@@ -308,6 +346,10 @@ No quedan errores de pruebas conocidos.
   documentada por amdgpu.
 - `is_primary` permanece desconocido cuando no existe una fuente inequívoca.
   `is_boot_vga` muestra por separado la selección de firmware PCI.
+- Las rutas IPv6 con selector de origen no se presentan como gateways globales,
+  porque el modelo público no representa selectores de policy routing.
+- El DNS ascendente queda desconocido cuando systemd-resolved no publica su
+  archivo opcional; el DNS configurado en `/etc/resolv.conf` se conserva aparte.
 
 ## Archivos principales
 
@@ -319,6 +361,7 @@ No quedan errores de pruebas conocidos.
 - `src/hardware_validator/detectors/memory.py`: RAM, swap y EDAC.
 - `src/hardware_validator/detectors/storage.py`: bloque, particiones y montajes.
 - `src/hardware_validator/detectors/gpu.py`: DRM y PCI GPU.
+- `src/hardware_validator/detectors/network.py`: interfaces, rutas y DNS locales.
 - `src/hardware_validator/report.py`: presentación pura.
 - `src/hardware_validator/__main__.py`: CLI.
 - `tests/`: pruebas unitarias y fixtures simulados.

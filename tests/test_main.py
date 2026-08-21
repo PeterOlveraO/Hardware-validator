@@ -14,6 +14,7 @@ from hardware_validator.collector import InventoryResults
 from hardware_validator.models import CpuInfo
 from hardware_validator.models import GpuInventory
 from hardware_validator.models import MemoryInfo
+from hardware_validator.models import NetworkInfo
 from hardware_validator.models import StorageInfo
 from hardware_validator.models import SystemInfo
 
@@ -25,11 +26,12 @@ def empty_results() -> InventoryResults:
         memory=DetectionResult.complete(MemoryInfo()),
         storage=DetectionResult.complete(StorageInfo()),
         gpu=DetectionResult.complete(GpuInventory()),
+        network=DetectionResult.complete(NetworkInfo()),
     )
 
 
 class MainTests(unittest.TestCase):
-    def test_main_prints_complete_inventory(self) -> None:
+    def test_main_prints_summary_by_default(self) -> None:
         output = io.StringIO()
 
         with (
@@ -40,8 +42,26 @@ class MainTests(unittest.TestCase):
             exit_code = __main__.main([])
 
         self.assertEqual(exit_code, 0)
+        self.assertIn("Computer\n", output.getvalue())
+        self.assertIn("\nGraphics\n", output.getvalue())
+        self.assertIn("\nNetwork\n", output.getvalue())
+        self.assertNotIn("Kernel Version", output.getvalue())
+
+    def test_verbose_prints_complete_technical_inventory(self) -> None:
+        output = io.StringIO()
+
+        with (
+            patch("hardware_validator.collector.collect_inventory", return_value=empty_results()),
+            patch("hardware_validator.detectors.default_detectors"),
+            redirect_stdout(output),
+        ):
+            exit_code = __main__.main(["--verbose"])
+
+        self.assertEqual(exit_code, 0)
         self.assertIn("System\n", output.getvalue())
+        self.assertIn("Kernel Version: Unknown", output.getvalue())
         self.assertIn("\nGPU\n", output.getvalue())
+        self.assertIn("\nNetwork\n", output.getvalue())
 
     def test_help_does_not_require_runtime_detection(self) -> None:
         output = io.StringIO()
@@ -51,6 +71,7 @@ class MainTests(unittest.TestCase):
 
         self.assertEqual(error.exception.code, 0)
         self.assertIn("non-invasive", output.getvalue())
+        self.assertIn("--verbose", output.getvalue())
 
     def test_version_does_not_require_runtime_detection(self) -> None:
         output = io.StringIO()
@@ -66,17 +87,24 @@ class MainTests(unittest.TestCase):
             def write(self, value: str) -> int:
                 raise UnicodeEncodeError("ascii", value, 0, 1, "fixture")
 
-        error = io.StringIO()
-        with (
-            patch("hardware_validator.collector.collect_inventory", return_value=empty_results()),
-            patch("hardware_validator.detectors.default_detectors"),
-            redirect_stdout(RestrictedOutput()),
-            redirect_stderr(error),
-        ):
-            exit_code = __main__.main([])
+        for arguments in ([], ["--verbose"]):
+            with self.subTest(arguments=arguments):
+                error = io.StringIO()
+                with (
+                    patch(
+                        "hardware_validator.collector.collect_inventory",
+                        return_value=empty_results(),
+                    ),
+                    patch("hardware_validator.detectors.default_detectors"),
+                    redirect_stdout(RestrictedOutput()),
+                    redirect_stderr(error),
+                ):
+                    exit_code = __main__.main(arguments)
 
-        self.assertEqual(exit_code, 1)
-        self.assertIn("Unable to write the hardware inventory", error.getvalue())
+                self.assertEqual(exit_code, 1)
+                self.assertIn(
+                    "Unable to write the hardware inventory", error.getvalue()
+                )
 
     def test_main_rejects_missing_psutil(self) -> None:
         error = io.StringIO()

@@ -9,6 +9,7 @@ from .models import CpuInfo
 from .models import GpuInventory
 from .models import HardwareSnapshot
 from .models import MemoryInfo
+from .models import NetworkInfo
 from .models import StorageInfo
 from .models import SystemInfo
 from .models import _ModelTypeError
@@ -77,9 +78,10 @@ class InventoryDetectors:
     memory: Detector[MemoryInfo]
     storage: Detector[StorageInfo]
     gpu: Detector[GpuInventory]
+    network: Detector[NetworkInfo]
 
     def __post_init__(self) -> None:
-        for name in ("system", "cpu", "memory", "storage", "gpu"):
+        for name in ("system", "cpu", "memory", "storage", "gpu", "network"):
             detector = getattr(self, name)
             if not callable(getattr(detector, "detect", None)):
                 raise ContractViolationError(
@@ -96,6 +98,7 @@ class InventoryResults:
     memory: DetectionResult[MemoryInfo]
     storage: DetectionResult[StorageInfo]
     gpu: DetectionResult[GpuInventory]
+    network: DetectionResult[NetworkInfo]
 
     def __post_init__(self) -> None:
         expected_types = {
@@ -104,6 +107,7 @@ class InventoryResults:
             "memory": MemoryInfo,
             "storage": StorageInfo,
             "gpu": GpuInventory,
+            "network": NetworkInfo,
         }
         for name, expected_type in expected_types.items():
             result = getattr(self, name)
@@ -124,6 +128,7 @@ class InventoryResults:
             memory=self.memory.value,
             storage=self.storage.value,
             gpu=self.gpu.value,
+            network=self.network.value,
         )
 
 
@@ -170,4 +175,7 @@ def collect_inventory(detectors: InventoryDetectors) -> InventoryResults:
             "storage", detectors.storage, StorageInfo, StorageInfo
         ),
         gpu=_run_detector("gpu", detectors.gpu, GpuInventory, GpuInventory),
+        network=_run_detector(
+            "network", detectors.network, NetworkInfo, NetworkInfo
+        ),
     )

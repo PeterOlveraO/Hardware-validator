@@ -11,6 +11,7 @@ from hardware_validator.models import CpuInfo
 from hardware_validator.models import GpuInventory
 from hardware_validator.models import GpuInfo
 from hardware_validator.models import MemoryInfo
+from hardware_validator.models import NetworkInfo
 from hardware_validator.models import StorageInfo
 from hardware_validator.models import SystemInfo
 
@@ -51,6 +52,7 @@ def make_detectors(gpu: object) -> InventoryDetectors:
         memory=StaticDetector(DetectionResult.complete(MemoryInfo())),
         storage=StaticDetector(DetectionResult.complete(StorageInfo())),
         gpu=gpu,  # type: ignore[arg-type]
+        network=StaticDetector(DetectionResult.complete(NetworkInfo())),
     )
 
 

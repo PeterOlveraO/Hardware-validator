@@ -6,6 +6,7 @@ import sys
 
 from . import __version__
 from .report import render_inventory
+from .report import render_summary
 
 REQUIRED_PSUTIL_VERSION = "7.2.1"
 
@@ -15,6 +16,11 @@ def _argument_parser() -> argparse.ArgumentParser:
         prog="hardware-validator",
         description="Print a non-invasive local Linux hardware inventory.",
     )
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="show the complete technical inventory report",
+    )
     parser.add_argument("--version", action="version", version=__version__)
     return parser
 
@@ -22,7 +28,7 @@ def _argument_parser() -> argparse.ArgumentParser:
 def main(argv: Sequence[str] | None = None) -> int:
     """Validate runtime preconditions, detect hardware, and print the report."""
 
-    _argument_parser().parse_args(argv)
+    arguments = _argument_parser().parse_args(argv)
 
     if sys.version_info < (3, 11):
         print("Hardware Validator requires Python 3.11 or newer.", file=sys.stderr)
@@ -52,7 +58,11 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     try:
         results = collect_inventory(default_detectors())
-        report = render_inventory(results)
+        report = (
+            render_inventory(results)
+            if arguments.verbose
+            else render_summary(results)
+        )
     except ContractViolationError as error:
         print(f"Internal hardware inventory contract error: {error}", file=sys.stderr)
         return 1
