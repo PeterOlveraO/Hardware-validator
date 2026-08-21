@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools==80.9.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hardware-validator"
+dynamic = ["version"]
+description = "Local Linux hardware inventory"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "psutil==7.2.1",
+]
+
+[project.scripts]
+hardware-validator = "hardware_validator.__main__:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.dynamic]
+version = {attr = "hardware_validator.__version__"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
