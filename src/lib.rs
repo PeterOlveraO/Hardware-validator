@@ -5,6 +5,10 @@
 compile_error!("Hardware Validator reads Linux procfs and sysfs and supports Linux only.");
 
 pub mod collector;
+pub mod detectors;
 pub mod host;
 pub mod models;
 pub mod text;
+
+#[cfg(test)]
+mod testutil;
