@@ -595,7 +595,10 @@ mod tests {
                 manufacturer: Some("System Maker".into()),
                 model: Some("System Model".into()),
                 architecture: Some("x86_64".into()),
-                baseboard: BaseboardInfo { model: Some("Hidden Board".into()), ..Default::default() },
+                baseboard: BaseboardInfo {
+                    model: Some("Hidden Board".into()),
+                    ..Default::default()
+                },
                 bios: BiosInfo { version: Some("Hidden BIOS".into()), ..Default::default() },
             },
             CpuInfo {
@@ -606,7 +609,11 @@ mod tests {
                 logical_processor_count: Some(16),
                 current_frequency_hz: Some(2_500_000_000),
                 maximum_frequency_hz: Some(4_000_000_000),
-                caches: vec![CpuCacheInfo { level: 1, kind: CacheKind::Data, size_bytes: Some(32768) }],
+                caches: vec![CpuCacheInfo {
+                    level: 1,
+                    kind: CacheKind::Data,
+                    size_bytes: Some(32768),
+                }],
                 capabilities: vec!["hidden_flag".into()],
                 ..Default::default()
             },
@@ -616,15 +623,37 @@ mod tests {
                 used_bytes: Some(10 * GIB),
                 free_bytes: Some(2 * GIB),
                 modules: vec![
-                    MemoryModuleInfo { locator: Some("DIMM_A1".into()), size_bytes: Some(8 * GIB), memory_type: None },
-                    MemoryModuleInfo { locator: Some("DIMM_B1".into()), size_bytes: Some(8 * GIB), memory_type: None },
+                    MemoryModuleInfo {
+                        locator: Some("DIMM_A1".into()),
+                        size_bytes: Some(8 * GIB),
+                        memory_type: None,
+                    },
+                    MemoryModuleInfo {
+                        locator: Some("DIMM_B1".into()),
+                        size_bytes: Some(8 * GIB),
+                        memory_type: None,
+                    },
                 ],
-                swap: SwapInfo { total_bytes: Some(2 * GIB), available_bytes: Some(GIB), used_bytes: Some(GIB) },
+                swap: SwapInfo {
+                    total_bytes: Some(2 * GIB),
+                    available_bytes: Some(GIB),
+                    used_bytes: Some(GIB),
+                },
             },
             StorageInfo {
                 disks: vec![
-                    DiskInfo { name: "loop0".into(), model: Some("Hidden Loop".into()), kind: Some(BlockDeviceKind::Virtual), ..Default::default() },
-                    DiskInfo { name: "usb0".into(), model: Some("Hidden USB".into()), kind: Some(BlockDeviceKind::Removable), ..Default::default() },
+                    DiskInfo {
+                        name: "loop0".into(),
+                        model: Some("Hidden Loop".into()),
+                        kind: Some(BlockDeviceKind::Virtual),
+                        ..Default::default()
+                    },
+                    DiskInfo {
+                        name: "usb0".into(),
+                        model: Some("Hidden USB".into()),
+                        kind: Some(BlockDeviceKind::Removable),
+                        ..Default::default()
+                    },
                     DiskInfo {
                         name: "nvme0n1".into(),
                         serial_number: Some("hidden-serial".into()),
@@ -654,7 +683,11 @@ mod tests {
             },
             GpuInventory {
                 devices: vec![
-                    GpuInfo { commercial_name: Some("Named GPU".into()), driver: Some("driver-a".into()), ..Default::default() },
+                    GpuInfo {
+                        commercial_name: Some("Named GPU".into()),
+                        driver: Some("driver-a".into()),
+                        ..Default::default()
+                    },
                     GpuInfo {
                         vendor_id: Some("0x1234".into()),
                         device_id: Some("0xabcd".into()),
@@ -694,7 +727,10 @@ mod tests {
                         ipv6_addresses: Some(vec![]),
                         ..interface("radio0", NetworkInterfaceType::Wifi)
                     },
-                    NetworkInterfaceInfo { is_up: Some(true), ..interface("local0", NetworkInterfaceType::Loopback) },
+                    NetworkInterfaceInfo {
+                        is_up: Some(true),
+                        ..interface("local0", NetworkInterfaceType::Loopback)
+                    },
                     interface("mystery0", NetworkInterfaceType::Unknown),
                 ],
                 ipv4_default_gateways: Some(vec![NetworkGatewayInfo {
