@@ -34,7 +34,9 @@ impl<T> DetectionResult<T> {
             (true, true) => Self::complete(value),
             (true, false) => Self::unavailable(value, nothing_found),
             (false, true) => Self { value, status: DetectionStatus::Partial, issues: issues.0 },
-            (false, false) => Self { value, status: DetectionStatus::Unavailable, issues: issues.0 },
+            (false, false) => {
+                Self { value, status: DetectionStatus::Unavailable, issues: issues.0 }
+            }
         }
     }
 }

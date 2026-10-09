@@ -25,8 +25,15 @@ pub struct FilesystemUsage {
 pub enum AddressFamily {
     /// Hardware address, already formatted as `aa:bb:cc:dd:ee:ff`.
     Link(String),
-    Ipv4 { address: Ipv4Addr, netmask: Option<Ipv4Addr> },
-    Ipv6 { address: Ipv6Addr, netmask: Option<Ipv6Addr>, scope_id: u32 },
+    Ipv4 {
+        address: Ipv4Addr,
+        netmask: Option<Ipv4Addr>,
+    },
+    Ipv6 {
+        address: Ipv6Addr,
+        netmask: Option<Ipv6Addr>,
+        scope_id: u32,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
