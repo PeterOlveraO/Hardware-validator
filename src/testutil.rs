@@ -38,6 +38,14 @@ impl Fixture {
         self
     }
 
+    /// Creates `absolute` as a symlink to the fixture path `target`.
+    pub fn link(&self, absolute: &str, target: &str) -> &Self {
+        let path = self.path(absolute);
+        fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::os::unix::fs::symlink(self.path(target), path).unwrap();
+        self
+    }
+
     /// A directory the test cannot read from, standing in for a permission error.
     pub fn unreadable(&self, absolute: &str) -> &Self {
         self.dir(absolute)

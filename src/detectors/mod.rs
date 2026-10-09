@@ -7,7 +7,10 @@ use std::io;
 use std::path::{Path, PathBuf};
 
 pub mod cpu;
+pub mod gpu;
 pub mod memory;
+pub mod network;
+pub mod storage;
 pub mod system;
 
 /// Lists `<prefix><number>` directory entries sorted by number.
