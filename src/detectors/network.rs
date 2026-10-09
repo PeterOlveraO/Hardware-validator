@@ -711,7 +711,9 @@ mod tests {
         assert!(issues.is_empty());
 
         let header = ROUTES.lines().next().unwrap();
-        let unknown_metric = format!("{header}\nwlan0\t00000000\t0102000A\t0003\t0\t0\tx\t00000000\t0\t0\t0\neth0\t00000000\t0101000A\t0003\t0\t0\t50\t00000000\t0\t0\t0\n");
+        let unknown_metric = format!(
+            "{header}\nwlan0\t00000000\t0102000A\t0003\t0\t0\tx\t00000000\t0\t0\t0\neth0\t00000000\t0101000A\t0003\t0\t0\t50\t00000000\t0\t0\t0\n"
+        );
         let routes = ipv4_default_routes(&unknown_metric, true, &known, &mut issues).unwrap();
         let order: Vec<_> = routes.iter().map(|r| (r.address.as_str(), r.metric)).collect();
         assert_eq!(order, [("10.0.1.1", Some(50)), ("10.0.2.1", None)]);
@@ -732,7 +734,9 @@ mod tests {
         let zero = "0".repeat(32);
         let hop = "fe800000000000000000000000000001";
         let line = |source_prefix: &str, flags: &str| {
-            format!("{zero} 00 {zero} {source_prefix} {hop} 00000400 00000001 00000000 {flags} eth0\n")
+            format!(
+                "{zero} 00 {zero} {source_prefix} {hop} 00000400 00000001 00000000 {flags} eth0\n"
+            )
         };
         let known = BTreeSet::from(["eth0"]);
         let mut issues = Issues::default();
@@ -761,7 +765,10 @@ mod tests {
             Some(vec!["1.1.1.1".into(), "::1".into()])
         );
         assert_eq!(issues.0, ["Malformed DNS configuration."]);
-        assert_eq!(nameservers("nameserver x\n", "Malformed DNS configuration.", &mut issues), None);
+        assert_eq!(
+            nameservers("nameserver x\n", "Malformed DNS configuration.", &mut issues),
+            None
+        );
     }
 
     #[test]

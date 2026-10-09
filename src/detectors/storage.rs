@@ -27,11 +27,9 @@ pub fn detect(host: &Host) -> DetectionResult<StorageInfo> {
 
     let mut partitions_by_disk: Vec<Vec<&BlockEntry>> = vec![Vec::new(); disks.len()];
     for partition in partitions {
-        let parent = partition
-            .identity
-            .ancestors()
-            .skip(1)
-            .find_map(|ancestor| disk_identities.iter().position(|disk| disk.as_path() == ancestor));
+        let parent = partition.identity.ancestors().skip(1).find_map(|ancestor| {
+            disk_identities.iter().position(|disk| disk.as_path() == ancestor)
+        });
         match parent {
             Some(index) => partitions_by_disk[index].push(partition),
             None => issues.push(format!("Unable to identify parent of {}.", partition.name)),
@@ -295,8 +293,7 @@ fn classify(
     if subsystem == Some("nvme") {
         return Some(BlockDeviceKind::Nvme);
     }
-    if subsystem == Some("mmc")
-        && device_type.is_some_and(|kind| kind.eq_ignore_ascii_case("mmc"))
+    if subsystem == Some("mmc") && device_type.is_some_and(|kind| kind.eq_ignore_ascii_case("mmc"))
     {
         return Some(BlockDeviceKind::Emmc);
     }
@@ -309,7 +306,8 @@ fn classify(
     if device_type.is_some_and(|kind| kind != "0" && !kind.eq_ignore_ascii_case("disk")) {
         return None;
     }
-    rotational.map(|rotational| if rotational { BlockDeviceKind::Hdd } else { BlockDeviceKind::Ssd })
+    rotational
+        .map(|rotational| if rotational { BlockDeviceKind::Hdd } else { BlockDeviceKind::Ssd })
 }
 
 /// Physical mounted filesystems, like `psutil.disk_partitions(all=False)`.
@@ -360,7 +358,9 @@ fn mounts(host: &Host, issues: &mut Issues) -> Option<Vec<MountInfo>> {
                     mount.used_bytes = Some(usage.used_bytes);
                     mount.available_bytes = Some(usage.available_bytes);
                 }
-                Err(_) => issues.push(format!("Unable to read filesystem usage for {mount_point}.")),
+                Err(_) => {
+                    issues.push(format!("Unable to read filesystem usage for {mount_point}."))
+                }
             }
         }
         mounts.push(mount);
@@ -548,10 +548,7 @@ mod tests {
         assert_eq!(result.value.disks[0].kind, Some(BlockDeviceKind::Virtual));
 
         let empty = Fixture::new();
-        empty
-            .dir("/sys/class/block")
-            .write("/proc/filesystems", "")
-            .write("/proc/self/mounts", "");
+        empty.dir("/sys/class/block").write("/proc/filesystems", "").write("/proc/self/mounts", "");
         assert_eq!(detect(&empty.host()).status, DetectionStatus::Complete);
         assert_eq!(detect(&Fixture::new().host()).status, DetectionStatus::Unavailable);
     }
