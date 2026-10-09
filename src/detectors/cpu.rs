@@ -115,10 +115,8 @@ fn parse_cpuinfo(content: &str) -> ParsedCpuinfo {
         let vendor = cleaned(block, "vendor_id").or_else(|| cleaned(block, "cpu implementer"));
         push_distinct(&mut parsed.model_names, model);
         push_distinct(&mut parsed.vendor_ids, vendor);
-        let features = block
-            .get("flags")
-            .filter(|flags| !flags.is_empty())
-            .or_else(|| block.get("features"));
+        let features =
+            block.get("flags").filter(|flags| !flags.is_empty()).or_else(|| block.get("features"));
         for feature in features.into_iter().flat_map(|text| text.split_whitespace()) {
             push_distinct(&mut parsed.capabilities, Some(feature.to_owned()));
         }

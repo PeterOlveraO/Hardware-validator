@@ -203,9 +203,7 @@ mod tests {
         assert_eq!(result.issues, ["Unable to query system identity."]);
 
         let fixture = Fixture::new();
-        fixture
-            .write("/etc/os-release", "NAME=Linux\n")
-            .unreadable("/sys/class/dmi/id/sys_vendor");
+        fixture.write("/etc/os-release", "NAME=Linux\n").unreadable("/sys/class/dmi/id/sys_vendor");
         let result = detect(&fixture.host());
         assert_eq!(result.status, DetectionStatus::Partial);
         assert!(result.issues.contains(&"Unable to read system vendor.".to_owned()));

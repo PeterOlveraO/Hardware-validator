@@ -26,4 +26,3 @@ pub(crate) fn numbered_entries(root: &Path, prefix: &str) -> io::Result<Vec<(u32
     entries.sort();
     Ok(entries)
 }
-
