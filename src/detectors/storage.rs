@@ -528,8 +528,8 @@ mod tests {
         assert_eq!(
             result.issues,
             [
-                "Unable to read filesystem usage for /.",
                 "Unable to read filesystem usage for /mnt/My Disk.",
+                "Unable to read filesystem usage for /.",
                 "Unable to read storage attribute for sdb.",
             ]
         );
