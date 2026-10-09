@@ -1,5 +1,8 @@
 # Informe de integración del inventario
 
+> Nota: este informe describe la implementación en Python (versión 0.2.0).
+> Desde la versión 0.3.0 el proyecto está escrito en Rust; ver `README.md`.
+
 Fecha: 20 de agosto de 2026.
 
 ## Resultado

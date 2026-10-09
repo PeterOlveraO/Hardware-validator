@@ -1,0 +1,26 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  rust:
+    name: Rust (Linux)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: rustup toolchain install stable --profile minimal --component rustfmt,clippy
+      - name: Check formatting (prints a patch on failure)
+        run: cargo fmt && git diff --exit-code
+      - run: cargo clippy --all-targets -- -D warnings
+      - run: cargo test
+      - name: Run the inventory and a short CPU test on the runner's hardware
+        run: |
+          cargo build --release
+          ./target/release/hardware-validator
+          ./target/release/hardware-validator --verbose
+          ./target/release/hardware-validator test cpu --duration 10s --load 30 --allow-no-temperature --verbose
