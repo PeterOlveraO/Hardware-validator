@@ -24,3 +24,19 @@ jobs:
           ./target/release/hardware-validator
           ./target/release/hardware-validator --verbose
           ./target/release/hardware-validator test cpu --duration 10s --load 30 --allow-no-temperature --verbose
+
+  windows:
+    name: Windows (checks the Linux build)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: rustup toolchain install stable --profile minimal --component clippy --target x86_64-unknown-linux-gnu
+      - name: Type-check and lint the Linux target from Windows
+        run: cargo clippy --all-targets --target x86_64-unknown-linux-gnu -- -D warnings
+      - name: Native Windows builds are rejected with a clear message
+        shell: bash
+        run: |
+          if cargo check 2> windows-build.log; then
+            echo "Expected the Linux-only compile error on Windows"; exit 1
+          fi
+          grep "supports Linux only" windows-build.log
