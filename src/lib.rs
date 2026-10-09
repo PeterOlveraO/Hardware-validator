@@ -8,6 +8,7 @@ pub mod collector;
 pub mod detectors;
 pub mod host;
 pub mod models;
+pub mod report;
 pub mod text;
 
 #[cfg(test)]

@@ -18,6 +18,11 @@ jobs:
         run: cargo fmt && git diff --exit-code
       - run: cargo clippy --all-targets -- -D warnings
       - run: cargo test
+      - name: Run the inventory on the runner's hardware
+        run: |
+          cargo build --release
+          ./target/release/hardware-validator
+          ./target/release/hardware-validator --verbose
 
   python:
     name: Python baseline (Linux)

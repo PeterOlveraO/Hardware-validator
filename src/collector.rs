@@ -1,5 +1,7 @@
 //! Detection completeness and inventory aggregation.
 
+use crate::detectors::{cpu, gpu, memory, network, storage, system};
+use crate::host::Host;
 use crate::models::{CpuInfo, GpuInventory, MemoryInfo, NetworkInfo, StorageInfo, SystemInfo};
 
 /// Internal completeness state; never presented as health, PASS, or FAIL.
@@ -66,4 +68,16 @@ pub struct InventoryResults {
     pub storage: DetectionResult<StorageInfo>,
     pub gpu: DetectionResult<GpuInventory>,
     pub network: DetectionResult<NetworkInfo>,
+}
+
+/// Runs every detector once, sequentially: each is a handful of local reads.
+pub fn collect_inventory(host: &Host) -> InventoryResults {
+    InventoryResults {
+        system: system::detect(host),
+        cpu: cpu::detect(host),
+        memory: memory::detect(host),
+        storage: storage::detect(host),
+        gpu: gpu::detect(host),
+        network: network::detect(host),
+    }
 }
