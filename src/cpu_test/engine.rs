@@ -6,8 +6,7 @@ use super::{
     TestResult,
 };
 
-pub const NO_TEMPERATURE_WARNING: &str =
-    "No usable temperature sensor is available; Hardware Validator thermal protection is disabled for this run.";
+pub const NO_TEMPERATURE_WARNING: &str = "No usable temperature sensor is available; Hardware Validator thermal protection is disabled for this run.";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Signal {
@@ -168,7 +167,10 @@ fn still_monitored(
         .iter()
         .filter_map(|expected| {
             let reading = readings.iter().find(|reading| reading.identity == expected.identity)?;
-            Some(MonitoredTemperature { current_celsius: reading.current_celsius, ..expected.clone() })
+            Some(MonitoredTemperature {
+                current_celsius: reading.current_celsius,
+                ..expected.clone()
+            })
         })
         .collect()
 }
@@ -690,7 +692,10 @@ mod tests {
         fake.temperature_delay = 2.5;
         let (result, _) = run_with(&config(10), &mut fake);
         assert_eq!(result.status, Status::Error);
-        assert_eq!(result.reason, "Temperature monitoring exceeded the two-second safety interval.");
+        assert_eq!(
+            result.reason,
+            "Temperature monitoring exceeded the two-second safety interval."
+        );
     }
 
     #[test]
@@ -705,7 +710,8 @@ mod tests {
 
     #[test]
     fn signals_cancel_the_run() {
-        let cases = [(Signal::Interrupt, CTRL_C_REASON), (Signal::Terminate, "Interrupted by SIGTERM.")];
+        let cases =
+            [(Signal::Interrupt, CTRL_C_REASON), (Signal::Terminate, "Interrupted by SIGTERM.")];
         for (signal, reason) in cases {
             let mut fake = Fake::cool();
             fake.signal_at = Some((2.5, signal));

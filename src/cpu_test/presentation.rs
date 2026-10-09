@@ -24,7 +24,8 @@ fn frequency(value: Option<f64>) -> String {
 
 /// Six significant digits without trailing zeros, like Python's `{:g}`.
 fn general(value: f64) -> String {
-    let integer_digits = if value.abs() >= 1.0 { value.abs().log10().floor() as usize + 1 } else { 1 };
+    let integer_digits =
+        if value.abs() >= 1.0 { value.abs().log10().floor() as usize + 1 } else { 1 };
     let text = format!("{:.*}", 6usize.saturating_sub(integer_digits), value);
     if text.contains('.') {
         text.trim_end_matches('0').trim_end_matches('.').to_owned()
@@ -239,7 +240,8 @@ pub fn render_result(result: &TestResult) -> String {
         lines.push("  Warnings: None".to_owned());
     } else {
         lines.push("  Warnings:".to_owned());
-        lines.extend(result.warnings.iter().map(|warning| format!("    - {}", plain_text(warning))));
+        lines
+            .extend(result.warnings.iter().map(|warning| format!("    - {}", plain_text(warning))));
     }
     lines.push("  This exercise does not certify CPU health or long-term reliability.".to_owned());
     lines.join("\n")

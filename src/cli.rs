@@ -4,8 +4,7 @@ use crate::cpu_test::{Config, parse_duration, parse_load, parse_temperature};
 
 const MAIN_USAGE: &str = "usage: hardware-validator [-h] [--verbose] [--version] {test} ...";
 const TEST_USAGE: &str = "usage: hardware-validator test [-h] {cpu} ...";
-const CPU_USAGE: &str =
-    "usage: hardware-validator test cpu [-h] [--duration DURATION] [--load PERCENT] [--max-temperature CELSIUS] [--allow-no-temperature] [--verbose]";
+const CPU_USAGE: &str = "usage: hardware-validator test cpu [-h] [--duration DURATION] [--load PERCENT] [--max-temperature CELSIUS] [--allow-no-temperature] [--verbose]";
 
 const MAIN_HELP: &str = "\
 Print a non-invasive local Linux hardware inventory or run an explicit CPU test.
@@ -43,7 +42,9 @@ pub enum Command {
     /// Text for stdout, exit code 0.
     Help(String),
     Version,
-    Inventory { verbose: bool },
+    Inventory {
+        verbose: bool,
+    },
     CpuTest(Config),
 }
 

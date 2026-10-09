@@ -42,8 +42,7 @@ pub fn parse_duration(value: &str) -> Result<u32, String> {
         "h" => 3600,
         _ => return Err(format_error()),
     };
-    if digits.is_empty() || digits.starts_with('0') || !digits.bytes().all(|b| b.is_ascii_digit())
-    {
+    if digits.is_empty() || digits.starts_with('0') || !digits.bytes().all(|b| b.is_ascii_digit()) {
         return Err(format_error());
     }
     digits

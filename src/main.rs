@@ -24,7 +24,8 @@ fn main() -> ExitCode {
         Command::CpuTest(config) => ExitCode::from(cpu_test::run_command(&config)),
         Command::Inventory { verbose } => {
             let results = collect_inventory(&Host::local());
-            let report = if verbose { render_inventory(&results) } else { render_summary(&results) };
+            let report =
+                if verbose { render_inventory(&results) } else { render_summary(&results) };
             if let Err(error) = writeln!(io::stdout().lock(), "{report}") {
                 eprintln!("Unable to write the hardware inventory: {error}");
                 return ExitCode::FAILURE;
